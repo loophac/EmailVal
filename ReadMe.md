@@ -1,6 +1,6 @@
 # 📬 Email Val
 
-<img width="1024" height="1024" alt="Image" src="https://github.com/user-attachments/assets/1ce271fc-25b5-446b-bf48-2fb9810ed87a" />
+<img width="400" height="400" alt="Image" src="https://github.com/user-attachments/assets/1ce271fc-25b5-446b-bf48-2fb9810ed87a" />
 
 **Email Val** is a fast, reliable, and developer-friendly email verification API that checks syntax, MX records, disposable status, and role-based addresses — all in real-time.
 
