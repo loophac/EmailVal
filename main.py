@@ -24,12 +24,7 @@ init_db()
 # --- Redis Setup ---
 redis_client = redis.from_url("redis://localhost", decode_responses=True)
 
-TIER_LIMITS_PER_MIN = {
-    "free": 60,
-    "basic": 120,
-    "pro": 300,
-    "unlimited": 1200
-}
+TIER_LIMITS_PER_MIN = {"free": 60, "basic": 120, "pro": 300, "unlimited": 1200}
 
 TIER_LIMITS_PER_MONTH = {
     "free": 500,
@@ -38,8 +33,10 @@ TIER_LIMITS_PER_MONTH = {
     "unlimited": -1
 }
 
+
 def get_monthly_limit(tier: str) -> int:
     return TIER_LIMITS_PER_MONTH.get(tier, 500)
+
 
 # --- Disposable domains & role list ---
 DISPOSABLE_DOMAINS = set()
@@ -48,6 +45,7 @@ with open("domains/disposable.txt", "r") as f:
         DISPOSABLE_DOMAINS.add(line.strip().lower())
 
 ROLE_ADDRESSES = {"admin", "info", "support", "contact", "sales"}
+
 
 # --- Models ---
 class ValidationResult(BaseModel):
@@ -60,6 +58,7 @@ class ValidationResult(BaseModel):
     score: float
     message: str
 
+
 # --- Utility Functions ---
 def validate_syntax(email: str) -> bool:
     try:
@@ -69,8 +68,10 @@ def validate_syntax(email: str) -> bool:
         print(f"Syntax check failed: {e}")
         return False
 
+
 def get_domain(email: str) -> str:
     return email.split("@")[1].lower()
+
 
 def check_mx(domain: str) -> bool:
     try:
@@ -80,14 +81,18 @@ def check_mx(domain: str) -> bool:
         print(f"MX lookup failed for {domain}: {e}")
         return False
 
+
 def is_disposable(email: str) -> bool:
     return get_domain(email) in DISPOSABLE_DOMAINS
+
 
 def is_role(email: str) -> bool:
     return email.split("@")[0].lower() in ROLE_ADDRESSES
 
+
 def get_daily_limit(tier: str) -> int:
     return {"free": 100, "pro": 5000, "unlimited": -1}.get(tier, 100)
+
 
 async def is_rate_limited(api_key: str, tier: str) -> bool:
     now = int(time.time()) // 60
@@ -99,30 +104,44 @@ async def is_rate_limited(api_key: str, tier: str) -> bool:
         await redis_client.expire(key, 60)
     return count > limit
 
+
 # --- Email Validation Endpoint ---
 @app.get("/validate")
-async def validate(email: str = Query(..., examples={"example": {"value": "test@example.com"}}),
+async def validate(email: str = Query(
+    ..., examples={"example": {
+        "value": "test@example.com"
+    }}),
                    x_api_key: str = Header(None)):
 
-    session = get_session()
-    key_obj = session.exec(
-        select(APIKey).where(APIKey.key == x_api_key, APIKey.active == True)
-    ).first()
+    with get_session() as session:
+        key_obj = session.exec(
+            select(APIKey).where(APIKey.key == x_api_key,
+                                 APIKey.active == True)).first()
+
+        if not key_obj:
+            return JSONResponse(status_code=403,
+                                content={
+                                    "success": False,
+                                    "data": None,
+                                    "error": "Invalid or missing API key"
+                                })
 
     if not key_obj:
-        return JSONResponse(status_code=403, content={
-            "success": False,
-            "data": None,
-            "error": "Invalid or missing API key"
-        })
+        return JSONResponse(status_code=403,
+                            content={
+                                "success": False,
+                                "data": None,
+                                "error": "Invalid or missing API key"
+                            })
 
     # Rate limit by minute
     if await is_rate_limited(x_api_key, key_obj.tier):
-        return JSONResponse(status_code=429, content={
-            "success": False,
-            "data": None,
-            "error": "Rate limit exceeded for this minute"
-        })
+        return JSONResponse(status_code=429,
+                            content={
+                                "success": False,
+                                "data": None,
+                                "error": "Rate limit exceeded for this minute"
+                            })
 
     # Monthly usage check
     monthly_limit = get_monthly_limit(key_obj.tier)
@@ -131,19 +150,16 @@ async def validate(email: str = Query(..., examples={"example": {"value": "test@
         start_of_month = datetime(now.year, now.month, 1)
 
         usage_this_month = session.exec(
-            select(Log).where(
-                Log.api_key_id == key_obj.id,
-                Log.timestamp >= start_of_month
-            )
-        ).all()
+            select(Log).where(Log.api_key_id == key_obj.id, Log.timestamp
+                              >= start_of_month)).all()
 
         if len(usage_this_month) >= monthly_limit:
-            return JSONResponse(status_code=429, content={
-                "success": False,
-                "data": None,
-                "error": "Monthly usage limit reached"
-            })
-
+            return JSONResponse(status_code=429,
+                                content={
+                                    "success": False,
+                                    "data": None,
+                                    "error": "Monthly usage limit reached"
+                                })
 
     # Syntax check
     syntax = validate_syntax(email)
@@ -166,11 +182,10 @@ async def validate(email: str = Query(..., examples={"example": {"value": "test@
     if not role: score += 0.1
 
     # Log request
-    session.add(Log(
-        email_validated=email,
-        timestamp=datetime.utcnow(),
-        api_key_id=key_obj.id
-    ))
+    session.add(
+        Log(email_validated=email,
+            timestamp=datetime.utcnow(),
+            api_key_id=key_obj.id))
     session.commit()
 
     result = {
@@ -184,11 +199,8 @@ async def validate(email: str = Query(..., examples={"example": {"value": "test@
         "message": "Validation complete"
     }
 
-    return {
-        "success": True,
-        "data": result,
-        "error": None
-    }
+    return {"success": True, "data": result, "error": None}
+
 
 # --- Health Check Endpoint ---
 @app.get("/health")
