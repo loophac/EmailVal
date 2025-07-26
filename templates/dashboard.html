@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; background: #f9fafb; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
+        th { background: #e5e7eb; }
+        form.inline { display: inline; margin: 0; padding: 0; }
+        button { padding: 0.25rem 0.5rem; margin: 0.1rem; border: none; border-radius: 4px; cursor: pointer; }
+        .add-btn { background: #10b981; color: white; }
+        .toggle-btn { background: #3b82f6; color: white; }
+        .logout { float: right; margin-top: -2rem; }
+    </style>
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+    <a href="/admin/logout" class="logout">Logout</a>
+
+    <form method="post" action="/admin/add-key">
+      <input type="text" name="label" placeholder="Label (optional)" />
+      <select name="tier">
+        <option value="free">Free</option>
+        <option value="basic">Basic</option>
+        <option value="pro">Pro</option>
+        <option value="unlimited">Unlimited</option>
+      </select>
+      <button type="submit">Add Key</button>
+    </form>
+
+    <h2>API Keys</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Key</th>
+                <th>Label</th>
+                <th>Tier</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Total Calls</th>
+                <th>Calls This Month</th>
+                <th>Toggle</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for key in keys %}
+            <tr>
+                <td>{{ key.id }}</td>
+                <td>{{ key.key }}</td>
+                <td>{{ key.label or '' }}</td>
+                <td>{{ key.tier }}</td>
+                <td>{{ 'Active' if key.active else 'Disabled' }}</td>
+                <td>{{ key.created_at }}</td>
+                <td>{{ key.total_calls }}</td>
+                <td>{{ key.monthly_calls }}</td>
+                <td>
+                    <form method="post" action="/admin/toggle-key" class="inline">
+                        <input type="hidden" name="key_id" value="{{ key.id }}">
+                        <button class="toggle-btn" type="submit">Toggle</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Recent Usage Logs</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Email</th>
+                <th>API Key ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.timestamp }}</td>
+                <td>{{ log.email_validated }}</td>
+                <td>{{ log.api_key_id }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

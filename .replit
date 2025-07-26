@@ -1,15 +1,14 @@
-entrypoint = "main.py"
+run = "uvicorn main:app --host 0.0.0.0 --port 8000"
 modules = ["python-3.11"]
 
 [nix]
-channel = "stable-24_05"
+packages = ["cacert", "cargo", "libiconv", "libxcrypt", "redis", "rustc"]
 
-[unitTest]
-language = "python3"
+[[ports]]
+localPort = 6379
+externalPort = 3000
 
-[gitHubImport]
-requiredFiles = [".replit", "replit.nix"]
+[[ports]]
+localPort = 8000
+externalPort = 80
 
-[deployment]
-run = ["python3", "main.py"]
-deploymentTarget = "cloudrun"
