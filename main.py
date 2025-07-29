@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Query, Header, HTTPException
+from fastapi import FastAPI, Query, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, ValidationError, parse_obj_as
 import dns.resolver
 from starlette.middleware.sessions import SessionMiddleware
@@ -106,6 +107,14 @@ async def is_rate_limited(api_key: str, tier: str) -> bool:
 
 
 # --- Email Validation Endpoint ---
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+	print("Unhandled Exception:", traceback.format_exc())
+	return JSONResponse(
+		status_code=500,
+		content={"detail": "Internal Server Error"}
+	)
+
 @app.get("/validate")
 async def validate(email: str = Query(
     ..., examples={"example": {

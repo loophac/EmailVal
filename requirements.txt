@@ -8,3 +8,7 @@ starlette
 aioredis
 redis
 requests
+itsdangerous
+jinja2
+python-multipart
+pydantic[email]
